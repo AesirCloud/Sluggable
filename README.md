@@ -20,7 +20,6 @@ composer require aesircloud/sluggable
 ```bash
 php artisan vendor:publish --provider="AesirCloud\Sluggable\SluggableServiceProvider"
 ```
-  
 
 ## Usage
 
@@ -42,6 +41,44 @@ class Post extends Model
 
     protected $slugSource = 'title'; // or 'description', or any other field
 }
+```
+
+You will need to add a slug column to your table. You can do this by creating a migration:
+
+```bash
+php artisan make:migration add_slug_to_posts_table --table=posts
+```
+
+```php
+    <?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('posts', function (Blueprint $table) {
+            $table->string('slug')->unique()->after('title');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('posts', function (Blueprint $table) {
+            $table->dropColumn('slug');
+        });
+    }
+};
+
 ```
 
 ## Changelog
