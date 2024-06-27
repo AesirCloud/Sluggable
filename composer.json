@@ -1,0 +1,43 @@
+{
+  "name": "aesircloud/sluggable",
+  "description": "A Laravel package to automatically generate slugs for models",
+  "license": "MIT",
+  "keywords": [
+    "AesirCloud",
+    "slug",
+    "sluggable"
+  ],
+  "authors": [
+    {
+      "name": "Greg Upton",
+      "email": "greg@aesircloud.com",
+      "homepage": "https://aesircloud.com",
+      "role": "Developer"
+    }
+  ],
+  "homepage": "https://github.com/AesirCloud/Sluggable",
+  "autoload": {
+    "psr-4": {
+      "AesirCloud\\Sluggable\\": "src/"
+    }
+  },
+  "require": {
+    "php": "^8.0",
+    "illuminate/database": "^8.0|^9.0|^10.0|^11.0",
+    "illuminate/support": "^8.0|^9.0|^10.0|^11.0"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "AesirCloud\\Sluggable\\SluggableServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  }
+}
