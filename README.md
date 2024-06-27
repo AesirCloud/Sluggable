@@ -2,6 +2,12 @@
 
 `sluggable` is a Laravel package that generates unique slugs for Eloquent models. It can be used to automatically generate slugs when creating or updating models.
 
+---
+
+[![Packagist Version](https://img.shields.io/packagist/v/aesircloud/sluggable)](https://packagist.org/packages/aesircloud/sluggable)
+[![MIT Licensed](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
+[![Packagist Downloads](https://img.shields.io/packagist/dt/aesircloud/sluggable)](https://packagist.org/packages/aesircloud/sluggable)
+
 ## Installation
 
 You can install the package via composer:
@@ -9,6 +15,12 @@ You can install the package via composer:
 ```bash
 composer require aesircloud/sluggable
 ```
+
+## Publish the configuration file
+```bash
+php artisan vendor:publish --provider="AesirCloud\Sluggable\SluggableServiceProvider"
+```
+  
 
 ## Usage
 
