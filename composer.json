@@ -18,7 +18,8 @@
   "homepage": "https://github.com/AesirCloud/Sluggable",
   "autoload": {
     "psr-4": {
-      "AesirCloud\\Sluggable\\": "src/"
+      "AesirCloud\\Sluggable\\": "src/",
+      "AesirCloud\\Sluggable\\Tests\\": "tests/"
     }
   },
   "require": {
@@ -39,5 +40,9 @@
     "allow-plugins": {
       "pestphp/pest-plugin": true
     }
+  },
+  "require-dev": {
+    "pestphp/pest": "^2.34",
+    "orchestra/testbench": "^9.1"
   }
 }
