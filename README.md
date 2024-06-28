@@ -4,10 +4,12 @@
 
 ---
 
-[![Packagist Version](https://img.shields.io/packagist/v/aesircloud/sluggable)](https://packagist.org/packages/aesircloud/sluggable)
-[![MIT Licensed](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/aesircloud/sluggable/tests.yml)](https://github.com/aesircloud/sluggable/actions)
-[![Total Downloads](https://img.shields.io/packagist/dt/aesircloud/sluggable.svg?style=flat-square)](https://packagist.org/packages/aesircloud/sluggable)
+<p align="center">
+<a href="https://github.com/aesircloud/sluggable/actions" target="_blank"><img src="https://img.shields.io/github/actions/workflow/status/aesircloud/sluggable/test.yml?branch=master&style=flat-square"/></a>
+<a href="https://packagist.org/packages/aesircloud/sluggable" target="_blank"><img src="https://img.shields.io/packagist/v/aesircloud/sluggable.svg?style=flat-square"/></a>
+<a href="https://packagist.org/packages/aesircloud/sluggable" target="_blank"><img src="https://img.shields.io/packagist/dt/aesircloud/sluggable.svg?style=flat-square"/></a>
+<a href="https://packagist.org/packages/aesircloud/sluggable" target="_blank"><img src="https://img.shields.io/packagist/l/aesircloud/sluggable.svg?style=flat-square"/></a>
+</p>
 
 ## Installation
 
