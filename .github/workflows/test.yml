@@ -25,7 +25,7 @@ jobs:
           coverage: xdebug
 
       - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress --no-suggest
+        run: composer install
 
       - name: Run Tests
         run: vendor/bin/pest
