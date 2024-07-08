@@ -1,34 +1,91 @@
 <?php
 
-namespace AesirCloud\Sluggable;
+namespace AesirCloud\Sluggable\Traits;
 
-use Illuminate\Support\ServiceProvider;
-class SluggableServiceProvider extends ServiceProvider
+use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Model;
+
+trait Sluggable
 {
     /**
-     * Bootstrap any package services.
+     * Boot the sluggable trait for a model.
      *
      * @return void
      */
-    public function boot()
+    public static function bootSluggable(): void
     {
-        // Publish the configuration file
-        $this->publishes([
-            __DIR__.'/../config/sluggable.php' => config_path('sluggable.php'),
-        ], 'config');
+        static::saving(function ($model) {
+            $model->generateSlug();
+        });
     }
 
     /**
-     * Register any package services.
+     * Find a model by its slug.
+     *
+     * @param string $slug
+     * @return Model|null
+     */
+    public static function findBySlug($slug)
+    {
+        return static::where('slug', $slug)->first();
+    }
+
+    /**
+     * Generate a unique slug for the model.
      *
      * @return void
      */
-    public function register()
+    protected function generateSlug(): void
     {
-        // Merge the configuration file
-        $this->mergeConfigFrom(
-            __DIR__.'/../config/sluggable.php',
-            'sluggable'
-        );
+        $slug = Str::slug($this->getSlugSource());
+
+        // Ensure the slug is unique
+        $slug = $this->makeSlugUnique($slug);
+
+        $this->slug = $slug;
+    }
+
+    /**
+     * Get the source string for the slug.
+     *
+     * @return string
+     */
+    protected function getSlugSource()
+    {
+        if (property_exists($this, 'slugSource')) {
+            return $this->{$this->slugSource};
+        }
+
+        return $this->title ?? $this->name ?? 'default';
+    }
+
+    /**
+     * Make the slug unique.
+     *
+     * @param string $slug
+     * @return string
+     */
+    protected function makeSlugUnique($slug): string
+    {
+        $originalSlug = $slug;
+        $count = 1;
+
+        while ($this->slugExists($slug)) {
+            $slug = "{$originalSlug}-{$count}";
+            $count++;
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Check if the slug already exists.
+     *
+     * @param string $slug
+     * @return bool
+     */
+    protected function slugExists($slug): bool
+    {
+        return static::where('slug', $slug)->exists();
     }
 }
