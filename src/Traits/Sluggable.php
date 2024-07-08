@@ -14,11 +14,7 @@ trait Sluggable
      */
     public static function bootSluggable(): void
     {
-        static::creating(function ($model) {
-            $model->generateSlug();
-        });
-
-        static::updating(function ($model) {
+        static::saving(function ($model) {
             $model->generateSlug();
         });
     }
