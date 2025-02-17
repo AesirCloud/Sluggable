@@ -3,7 +3,7 @@
         'name' => 'aesircloud/sluggable',
         'pretty_version' => '1.1.0.x-dev',
         'version' => '1.1.0.9999999-dev',
-        'reference' => '06238436e5a26838dd4fe3d80bca6fe4a95af4da',
+        'reference' => 'ddc5bcdffb48af76f149f7f38c32d1559e5fa268',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'aesircloud/sluggable' => array(
             'pretty_version' => '1.1.0.x-dev',
             'version' => '1.1.0.9999999-dev',
-            'reference' => '06238436e5a26838dd4fe3d80bca6fe4a95af4da',
+            'reference' => 'ddc5bcdffb48af76f149f7f38c32d1559e5fa268',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
