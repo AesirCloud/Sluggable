@@ -7,10 +7,15 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Collection;
 use Illuminate\Support\LazyCollection;
 use Orchestra\Testbench\Contracts\Config as ConfigContract;
+use Orchestra\Testbench\Foundation\Env;
+use Orchestra\Testbench\Workbench\Actions\RemoveAssetSymlinkFolders;
 use Symfony\Component\Console\Attribute\AsCommand;
 
-use function Illuminate\Filesystem\join_paths;
+use function Orchestra\Testbench\join_paths;
 
+/**
+ * @codeCoverageIgnore
+ */
 #[AsCommand(name: 'package:purge-skeleton', description: 'Purge skeleton folder to original state')]
 class PurgeSkeletonCommand extends Command
 {
@@ -25,6 +30,7 @@ class PurgeSkeletonCommand extends Command
      * Execute the console command.
      *
      * @param  \Illuminate\Filesystem\Filesystem  $filesystem
+     * @param  \Orchestra\Testbench\Contracts\Config  $config
      * @return int
      */
     public function handle(Filesystem $filesystem, ConfigContract $config)
@@ -34,23 +40,25 @@ class PurgeSkeletonCommand extends Command
         $this->call('route:clear');
         $this->call('view:clear');
 
+        (new RemoveAssetSymlinkFolders($filesystem, $config))->handle();
+
         ['files' => $files, 'directories' => $directories] = $config->getPurgeAttributes();
 
-        $workingPath = $this->laravel->basePath();
+        $environmentFile = Env::get('TESTBENCH_ENVIRONMENT_FILE_USING', '.env');
 
         (new Actions\DeleteFiles(
             filesystem: $filesystem,
-            workingPath: $workingPath,
         ))->handle(
             Collection::make([
-                '.env',
-                'testbench.yaml',
+                $environmentFile,
+                "{$environmentFile}.backup",
+                join_paths('bootstrap', 'cache', 'testbench.yaml'),
+                join_paths('bootstrap', 'cache', 'testbench.yaml.backup'),
             ])->map(fn ($file) => $this->laravel->basePath($file))
         );
 
         (new Actions\DeleteFiles(
             filesystem: $filesystem,
-            workingPath: $workingPath,
         ))->handle(
             LazyCollection::make(function () use ($filesystem) {
                 yield $this->laravel->databasePath('database.sqlite');
@@ -64,7 +72,6 @@ class PurgeSkeletonCommand extends Command
         (new Actions\DeleteFiles(
             filesystem: $filesystem,
             components: $this->components,
-            workingPath: $workingPath,
         ))->handle(
             LazyCollection::make($files)
                 ->map(fn ($file) => $this->laravel->basePath($file))
@@ -76,7 +83,6 @@ class PurgeSkeletonCommand extends Command
         (new Actions\DeleteDirectories(
             filesystem: $filesystem,
             components: $this->components,
-            workingPath: $workingPath,
         ))->handle(
             Collection::make($directories)
                 ->map(fn ($directory) => $this->laravel->basePath($directory))

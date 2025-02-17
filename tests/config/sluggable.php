@@ -1,5 +1,9 @@
 <?php
 
 return [
-    'source' => 'title', // Default source field for the slug
+    'source'     => 'title',
+    'column'     => 'slug',
+    'update'     => false,
+    'max_length' => 255,
+    'scopes'     => [],
 ];

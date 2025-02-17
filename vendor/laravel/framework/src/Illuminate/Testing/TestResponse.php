@@ -28,6 +28,8 @@ use Symfony\Component\HttpFoundation\StreamedJsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
+ * @template TResponse of \Symfony\Component\HttpFoundation\Response
+ *
  * @mixin \Illuminate\Http\Response
  */
 class TestResponse implements ArrayAccess
@@ -46,7 +48,7 @@ class TestResponse implements ArrayAccess
     /**
      * The response to delegate to.
      *
-     * @var \Illuminate\Http\Response
+     * @var TResponse
      */
     public $baseResponse;
 
@@ -67,7 +69,7 @@ class TestResponse implements ArrayAccess
     /**
      * Create a new test response instance.
      *
-     * @param  \Illuminate\Http\Response  $response
+     * @param  TResponse  $response
      * @param  \Illuminate\Http\Request|null  $request
      * @return void
      */
@@ -81,9 +83,11 @@ class TestResponse implements ArrayAccess
     /**
      * Create a new TestResponse from another response.
      *
-     * @param  \Illuminate\Http\Response  $response
+     * @template R of TResponse
+     *
+     * @param  R  $response
      * @param  \Illuminate\Http\Request|null  $request
-     * @return static
+     * @return static<R>
      */
     public static function fromBaseResponse($response, $request = null)
     {
@@ -213,7 +217,7 @@ class TestResponse implements ArrayAccess
     /**
      * Assert whether the response is redirecting to a given route.
      *
-     * @param  string  $name
+     * @param  \BackedEnum|string  $name
      * @param  mixed  $parameters
      * @return $this
      */
@@ -234,11 +238,12 @@ class TestResponse implements ArrayAccess
     /**
      * Assert whether the response is redirecting to a given signed route.
      *
-     * @param  string|null  $name
+     * @param  \BackedEnum|string|null  $name
      * @param  mixed  $parameters
+     * @param  bool  $absolute
      * @return $this
      */
-    public function assertRedirectToSignedRoute($name = null, $parameters = [])
+    public function assertRedirectToSignedRoute($name = null, $parameters = [], $absolute = true)
     {
         if (! is_null($name)) {
             $uri = route($name, $parameters);
@@ -252,7 +257,7 @@ class TestResponse implements ArrayAccess
         $request = Request::create($this->headers->get('Location'));
 
         PHPUnit::withResponse($this)->assertTrue(
-            $request->hasValidSignature(), 'The response is not a redirect to a signed route.'
+            $request->hasValidSignature($absolute), 'The response is not a redirect to a signed route.'
         );
 
         if (! is_null($name)) {
@@ -522,7 +527,37 @@ class TestResponse implements ArrayAccess
      */
     public function assertContent($value)
     {
-        PHPUnit::withResponse($this)->assertSame($value, $this->content());
+        PHPUnit::withResponse($this)->assertSame($value, $this->getContent());
+
+        return $this;
+    }
+
+    /**
+     * Assert that the response was streamed.
+     *
+     * @return $this
+     */
+    public function assertStreamed()
+    {
+        PHPUnit::withResponse($this)->assertTrue(
+            $this->baseResponse instanceof StreamedResponse || $this->baseResponse instanceof StreamedJsonResponse,
+            'Expected the response to be streamed, but it wasn\'t.'
+        );
+
+        return $this;
+    }
+
+    /**
+     * Assert that the response was not streamed.
+     *
+     * @return $this
+     */
+    public function assertNotStreamed()
+    {
+        PHPUnit::withResponse($this)->assertTrue(
+            ! $this->baseResponse instanceof StreamedResponse && ! $this->baseResponse instanceof StreamedJsonResponse,
+            'Response was unexpectedly streamed.'
+        );
 
         return $this;
     }
@@ -572,6 +607,17 @@ class TestResponse implements ArrayAccess
     }
 
     /**
+     * Assert that the given HTML string or array of HTML strings are contained within the response.
+     *
+     * @param  array|string  $value
+     * @return $this
+     */
+    public function assertSeeHtml($value)
+    {
+        return $this->assertSee($value, false);
+    }
+
+    /**
      * Assert that the given strings are contained in order within the response.
      *
      * @param  array  $values
@@ -585,6 +631,17 @@ class TestResponse implements ArrayAccess
         PHPUnit::withResponse($this)->assertThat($values, new SeeInOrder($this->getContent()));
 
         return $this;
+    }
+
+    /**
+     * Assert that the given HTML strings are contained in order within the response.
+     *
+     * @param  array  $values
+     * @return $this
+     */
+    public function assertSeeHtmlInOrder(array $values)
+    {
+        return $this->assertSeeInOrder($values, false);
     }
 
     /**
@@ -643,6 +700,17 @@ class TestResponse implements ArrayAccess
         }
 
         return $this;
+    }
+
+    /**
+     * Assert that the given HTML string or array of HTML strings are not contained within the response.
+     *
+     * @param  array|string  $value
+     * @return $this
+     */
+    public function assertDontSeeHtml($value)
+    {
+        return $this->assertDontSee($value, false);
     }
 
     /**
@@ -748,6 +816,21 @@ class TestResponse implements ArrayAccess
     }
 
     /**
+     * Assert that the response contains the given JSON fragments.
+     *
+     * @param  array  $data
+     * @return $this
+     */
+    public function assertJsonFragments(array $data)
+    {
+        foreach ($data as $fragment) {
+            $this->assertJsonFragment($fragment);
+        }
+
+        return $this;
+    }
+
+    /**
      * Assert that the response contains the given JSON fragment.
      *
      * @param  array  $data
@@ -815,6 +898,20 @@ class TestResponse implements ArrayAccess
     }
 
     /**
+     * Assert that the response has the exact JSON structure.
+     *
+     * @param  array|null  $structure
+     * @param  array|null  $responseData
+     * @return $this
+     */
+    public function assertExactJsonStructure(?array $structure = null, $responseData = null)
+    {
+        $this->decodeResponseJson()->assertStructure($structure, $responseData, true);
+
+        return $this;
+    }
+
+    /**
      * Assert that the response JSON has the expected count of items at the given key.
      *
      * @param  int  $count
@@ -867,12 +964,12 @@ class TestResponse implements ArrayAccess
                         break;
                     }
                 }
-            }
 
-            if ($errorMissing) {
-                PHPUnit::withResponse($this)->fail(
-                    "Failed to find a validation error in the response for key and message: '$key' => '$expectedMessage'".PHP_EOL.PHP_EOL.$errorMessage
-                );
+                if ($errorMissing) {
+                    PHPUnit::withResponse($this)->fail(
+                        "Failed to find a validation error in the response for key and message: '$key' => '$expectedMessage'".PHP_EOL.PHP_EOL.$errorMessage
+                    );
+                }
             }
         }
 
@@ -989,7 +1086,7 @@ class TestResponse implements ArrayAccess
     }
 
     /**
-     * Validate and return the decoded response JSON.
+     * Validate the decoded response JSON.
      *
      * @return \Illuminate\Testing\AssertableJsonString
      *
@@ -997,7 +1094,12 @@ class TestResponse implements ArrayAccess
      */
     public function decodeResponseJson()
     {
-        $testJson = new AssertableJsonString($this->getContent());
+        if ($this->baseResponse instanceof StreamedResponse ||
+            $this->baseResponse instanceof StreamedJsonResponse) {
+            $testJson = new AssertableJsonString($this->streamedContent());
+        } else {
+            $testJson = new AssertableJsonString($this->getContent());
+        }
 
         $decodedResponse = $testJson->json();
 
@@ -1013,7 +1115,7 @@ class TestResponse implements ArrayAccess
     }
 
     /**
-     * Validate and return the decoded response JSON.
+     * Return the decoded response JSON.
      *
      * @param  string|null  $key
      * @return mixed
@@ -1031,7 +1133,7 @@ class TestResponse implements ArrayAccess
      */
     public function collect($key = null)
     {
-        return Collection::make($this->json($key));
+        return new Collection($this->json($key));
     }
 
     /**

@@ -16,8 +16,10 @@ class RegisterProviders extends \Illuminate\Foundation\Bootstrap\RegisterProvide
      */
     public static function mergeAdditionalProvidersForTestbench(array $providers): array
     {
-        if (static::$bootstrapProviderPath &&
-            file_exists(static::$bootstrapProviderPath)) {
+        if (
+            static::$bootstrapProviderPath &&
+            file_exists(static::$bootstrapProviderPath)
+        ) {
             $packageProviders = require static::$bootstrapProviderPath;
 
             foreach ($packageProviders as $index => $provider) {
@@ -27,9 +29,10 @@ class RegisterProviders extends \Illuminate\Foundation\Bootstrap\RegisterProvide
             }
         }
 
+        /** @phpstan-ignore return.type */
         return tap(
             array_merge($providers, static::$merge, array_values($packageProviders ?? [])),
-            function ($p) {
+            static function ($providers) {
                 static::$merge = [];
                 static::$bootstrapProviderPath = null;
             }

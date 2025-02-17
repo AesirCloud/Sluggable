@@ -9,6 +9,9 @@ use NunoMaduro\Collision\Adapters\Laravel\Commands\TestCommand as CollisionTestC
 
 use function Orchestra\Testbench\package_path;
 
+/**
+ * @internal
+ */
 class TestbenchServiceProvider extends ServiceProvider
 {
     /**
@@ -41,7 +44,9 @@ class TestbenchServiceProvider extends ServiceProvider
                 Console\CreateSqliteDbCommand::class,
                 Console\DropSqliteDbCommand::class,
                 Console\PurgeSkeletonCommand::class,
+                Console\SyncSkeletonCommand::class,
                 Console\ServeCommand::class,
+                Console\VendorPublishCommand::class,
             ]);
         }
     }

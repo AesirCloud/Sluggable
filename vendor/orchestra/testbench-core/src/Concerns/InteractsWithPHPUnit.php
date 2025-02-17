@@ -72,13 +72,19 @@ trait InteractsWithPHPUnit
      * @return \Illuminate\Support\Collection<string, mixed>
      *
      * @deprecated
+     *
+     * @codeCoverageIgnore
      */
     protected function resolvePhpUnitAnnotations(): Collection
     {
         $instance = new ReflectionClass($this);
 
-        if (! $this instanceof PHPUnitTestCase || $instance->isAnonymous()) {
-            return new Collection();
+        if (
+            ! $this instanceof PHPUnitTestCase
+            || $instance->isAnonymous()
+            || ! class_exists(PHPUnitRegistry::class)
+        ) {
+            return new Collection;
         }
 
         [$registry, $methodName] = [PHPUnitRegistry::getInstance(), $this->name()];
@@ -109,7 +115,7 @@ trait InteractsWithPHPUnit
         $instance = new ReflectionClass($this);
 
         if (! $this instanceof PHPUnitTestCase || $instance->isAnonymous()) {
-            return new Collection(); /** @phpstan-ignore return.type */
+            return new Collection; /** @phpstan-ignore return.type */
         }
 
         $className = $instance->getName();
@@ -147,9 +153,9 @@ trait InteractsWithPHPUnit
 
         /** @var \Illuminate\Support\Collection<class-string<TTestingFeature>, array<int, TTestingFeature>> $attributes */
         $attributes = Collection::make(array_merge(
+            static::$testCaseTestingFeatures,
             static::$cachedTestCaseClassAttributes[$className],
             ! \is_null($methodName) ? static::$cachedTestCaseMethodAttributes["{$className}:{$methodName}"] : [],
-            static::$testCaseTestingFeatures,
         ))->groupBy('key')
             ->map(static function ($attributes) {
                 /** @var \Illuminate\Support\Collection<int, array{key: class-string<TTestingFeature>, instance: TTestingFeature}> $attributes */
@@ -221,11 +227,13 @@ trait InteractsWithPHPUnit
         static::$cachedTestCaseClassAttributes = [];
         static::$cachedTestCaseMethodAttributes = [];
 
-        $registry = PHPUnitRegistry::getInstance();
+        if (class_exists(PHPUnitRegistry::class)) {
+            $registry = PHPUnitRegistry::getInstance();
 
-        (function () {
-            $this->classDocBlocks = [];
-            $this->methodDocBlocks = [];
-        })->call($registry);
+            (function () {
+                $this->classDocBlocks = [];
+                $this->methodDocBlocks = [];
+            })->call($registry);
+        }
     }
 }

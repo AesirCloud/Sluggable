@@ -7,8 +7,13 @@ use RuntimeException;
 use Symfony\Component\Process\Exception\ProcessSignaledException;
 use Symfony\Component\Process\Process;
 
+use function Laravel\Prompts\confirm;
 use function Orchestra\Testbench\package_path;
+use function Orchestra\Testbench\php_binary;
 
+/**
+ * @codeCoverageIgnore
+ */
 class TestFallbackCommand extends Command
 {
     /**
@@ -37,11 +42,7 @@ class TestFallbackCommand extends Command
      */
     protected $description = 'Run the package tests';
 
-    /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
+    /** {@inheritDoc} */
     public function __construct()
     {
         parent::__construct();
@@ -58,7 +59,7 @@ class TestFallbackCommand extends Command
      */
     public function handle()
     {
-        if (! $this->confirm('Running tests requires "nunomaduro/collision". Do you wish to install it as a dev dependency?')) {
+        if (! confirm('Running tests requires "nunomaduro/collision". Do you wish to install it as a dev dependency?')) {
             return Command::FAILURE;
         }
 
@@ -76,7 +77,7 @@ class TestFallbackCommand extends Command
     {
         $version = '8.0';
 
-        $command = sprintf('%s require "nunomaduro/collision:^%s" --dev', $this->findComposer(), $version);
+        $command = \sprintf('%s require "nunomaduro/collision:^%s" --dev', $this->findComposer(), $version);
 
         $process = Process::fromShellCommandline($command, null, null, null, null);
 
@@ -108,8 +109,8 @@ class TestFallbackCommand extends Command
     {
         $composerPath = package_path('composer.phar');
 
-        if (file_exists($composerPath)) {
-            return '"'.PHP_BINARY.'" '.$composerPath;
+        if (is_file($composerPath)) {
+            return implode(' ', [php_binary(true), $composerPath]);
         }
 
         return 'composer';

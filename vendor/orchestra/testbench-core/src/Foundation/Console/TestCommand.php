@@ -4,11 +4,15 @@ namespace Orchestra\Testbench\Foundation\Console;
 
 use Illuminate\Support\Collection;
 use NunoMaduro\Collision\Adapters\Laravel\Commands\TestCommand as Command;
+use Orchestra\Testbench\Features\ParallelRunner;
 use Orchestra\Testbench\Foundation\Env;
 
 use function Orchestra\Testbench\defined_environment_variables;
 use function Orchestra\Testbench\package_path;
 
+/**
+ * @codeCoverageIgnore
+ */
 class TestCommand extends Command
 {
     /**
@@ -37,11 +41,7 @@ class TestCommand extends Command
      */
     protected $description = 'Run the package tests';
 
-    /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
+    /** {@inheritDoc} */
     public function __construct()
     {
         parent::__construct();
@@ -51,11 +51,7 @@ class TestCommand extends Command
         }
     }
 
-    /**
-     * Execute the console command.
-     *
-     * @return mixed
-     */
+    /** {@inheritDoc} */
     #[\Override]
     public function handle()
     {
@@ -74,18 +70,14 @@ class TestCommand extends Command
         $configurationFile = str_replace('./', '', $this->option('configuration') ?? 'phpunit.xml');
 
         return Collection::make([
-            package_path(DIRECTORY_SEPARATOR.$configurationFile),
-            package_path(DIRECTORY_SEPARATOR.$configurationFile.'.dist'),
-        ])->filter(static fn ($path) => file_exists($path))
+            package_path($configurationFile),
+            package_path("{$configurationFile}.dist"),
+        ])->transform(static fn ($path) => DIRECTORY_SEPARATOR.$path)
+            ->filter(static fn ($path) => is_file($path))
             ->first() ?? './';
     }
 
-    /**
-     * Get the array of arguments for running PHPUnit.
-     *
-     * @param  array  $options
-     * @return array
-     */
+    /** {@inheritDoc} */
     #[\Override]
     protected function phpunitArguments($options)
     {
@@ -97,12 +89,7 @@ class TestCommand extends Command
             ->all();
     }
 
-    /**
-     * Get the array of arguments for running Paratest.
-     *
-     * @param  array  $options
-     * @return array
-     */
+    /** {@inheritDoc} */
     #[\Override]
     protected function paratestArguments($options)
     {
@@ -111,16 +98,12 @@ class TestCommand extends Command
         return Collection::make(parent::paratestArguments($options))
             ->reject(static fn (string $option) => str_starts_with($option, '--configuration=') || str_starts_with($option, '--runner='))
             ->merge([
-                "--configuration={$file}",
-                "--runner=\Orchestra\Testbench\Foundation\ParallelRunner",
+                \sprintf('--configuration=%s', $file),
+                \sprintf('--runner=%s', ParallelRunner::class),
             ])->all();
     }
 
-    /**
-     * Get the array of environment variables for running PHPUnit.
-     *
-     * @return array
-     */
+    /** {@inheritDoc} */
     #[\Override]
     protected function phpunitEnvironmentVariables()
     {
@@ -134,11 +117,7 @@ class TestCommand extends Command
             ->all();
     }
 
-    /**
-     * Get the array of environment variables for running Paratest.
-     *
-     * @return array
-     */
+    /** {@inheritDoc} */
     #[\Override]
     protected function paratestEnvironmentVariables()
     {

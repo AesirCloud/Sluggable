@@ -6,7 +6,7 @@ use Illuminate\Log\LogManager;
 use Orchestra\Testbench\Exceptions\DeprecatedException;
 use Orchestra\Testbench\Foundation\Env;
 
-use function Illuminate\Filesystem\join_paths;
+use function Orchestra\Testbench\join_paths;
 
 /**
  * @internal
@@ -14,13 +14,7 @@ use function Illuminate\Filesystem\join_paths;
 final class HandleExceptions extends \Illuminate\Foundation\Bootstrap\HandleExceptions
 {
     /**
-     * Reports a deprecation to the "deprecations" logger.
-     *
-     * @param  string  $message
-     * @param  string  $file
-     * @param  int  $line
-     * @param  int  $level
-     * @return void
+     * {@inheritDoc}
      *
      * @throws \Orchestra\Testbench\Exceptions\DeprecatedException
      */
@@ -36,11 +30,7 @@ final class HandleExceptions extends \Illuminate\Foundation\Bootstrap\HandleExce
         }
     }
 
-    /**
-     * Ensure the "deprecations" logger is configured.
-     *
-     * @return void
-     */
+    /** {@inheritDoc} */
     #[\Override]
     protected function ensureDeprecationLoggerIsConfigured()
     {
@@ -52,9 +42,11 @@ final class HandleExceptions extends \Illuminate\Foundation\Bootstrap\HandleExce
 
             /** @var array{channel?: string, trace?: bool}|string|null $options */
             $options = $config->get('logging.deprecations');
+            $trace = Env::get('LOG_DEPRECATIONS_TRACE', false);
 
             if (\is_array($options)) {
                 $driver = $options['channel'] ?? 'null';
+                $trace = $options['trace'] ?? true;
             } else {
                 $driver = $options ?? 'null';
             }
@@ -69,16 +61,12 @@ final class HandleExceptions extends \Illuminate\Foundation\Bootstrap\HandleExce
 
             $config->set('logging.deprecations', [
                 'channel' => 'deprecations',
-                'trace' => true,
+                'trace' => $trace,
             ]);
         });
     }
 
-    /**
-     * Determine if deprecation error should be ignored.
-     *
-     * @return bool
-     */
+    /** {@inheritDoc} */
     #[\Override]
     protected function shouldIgnoreDeprecationErrors()
     {
