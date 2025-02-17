@@ -8,6 +8,7 @@ All notable changes to `sluggable` will be documented in this file.
 - **Enhancement:** Added optional truncation for slug generation to respect a maximum length (default set to 255 in the config).
 - **Enhancement:** Allow skipping slug updates if `update` is set to `false` in `config/sluggable.php` or if `$slugUpdatable = false` in the model.
 - **Enhancement:** Support a customizable slug column via `$slugColumn` in the model or `sluggable.column` in the config.
+- **Enhancement:** Bumped minimum PHP version to 8.3.
 - **Doc:** Updated README with new usage examples and instructions for overriding default config values.
 
 
