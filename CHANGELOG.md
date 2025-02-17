@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to `sluggable` will be documented in this file.
 
-## 1.1.1 - 2025-02-17
+## 1.1.2 - 2025-02-17
 - **Feature:** Added configuration-driven slug generation. Users can now control slug source, column name, max length, and update behavior via `config/sluggable.php`.
 - **Enhancement:** Unified slug creation and update logic into a single `generateSlug()` method, reducing duplication and making updates more maintainable.
 - **Enhancement:** Added optional scope-based uniqueness by defining scope fields in the config file.
