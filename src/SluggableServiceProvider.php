@@ -3,6 +3,7 @@
 namespace AesirCloud\Sluggable;
 
 use Illuminate\Support\ServiceProvider;
+
 class SluggableServiceProvider extends ServiceProvider
 {
     /**

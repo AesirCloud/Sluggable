@@ -2,7 +2,7 @@
 
 namespace Orchestra\Workbench\Http\Controllers;
 
-use Illuminate\Routing\Controller;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
@@ -15,13 +15,15 @@ class WorkbenchController extends Controller
      *
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function start()
+    public function start(Request $request)
     {
         $workbench = Workbench::config();
 
         if (\is_null($workbench['user'])) {
             return $this->logout($workbench['guard']);
         }
+
+        $request->session()->flush();
 
         return $this->login((string) $workbench['user'], $workbench['guard']);
     }
@@ -59,12 +61,8 @@ class WorkbenchController extends Controller
     {
         $guard = $guard ?: config('auth.defaults.guard');
 
-        /**
-         * @phpstan-ignore method.notFound
-         *
-         * @var \Illuminate\Contracts\Auth\UserProvider $provider
-         */
-        $provider = Auth::guard($guard)->getProvider();
+        /** @var \Illuminate\Contracts\Auth\UserProvider $provider */
+        $provider = Auth::guard($guard)->getProvider(); // @phpstan-ignore method.notFound
 
         $user = Str::contains($userId, '@')
             ? $provider->retrieveByCredentials(['email' => $userId])

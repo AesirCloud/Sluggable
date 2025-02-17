@@ -4,6 +4,8 @@ namespace Orchestra\Testbench\Foundation;
 
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Console\Scheduling\ScheduleListCommand;
+use Illuminate\Console\Signals;
+use Illuminate\Database\Schema\Builder as SchemaBuilder;
 use Illuminate\Foundation\Bootstrap\HandleExceptions;
 use Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables;
 use Illuminate\Foundation\Bootstrap\RegisterProviders;
@@ -15,6 +17,7 @@ use Illuminate\Foundation\Http\Middleware\TrimStrings;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Queue\Console\WorkCommand;
 use Illuminate\Queue\Queue;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Arr;
@@ -26,7 +29,7 @@ use Orchestra\Testbench\Console\Commander;
 use Orchestra\Testbench\Contracts\Config as ConfigContract;
 use Orchestra\Testbench\Workbench\Workbench;
 
-use function Illuminate\Filesystem\join_paths;
+use function Orchestra\Testbench\join_paths;
 
 /**
  * @api
@@ -46,6 +49,13 @@ class Application
         resolveApplicationResolvingCallback as protected resolveApplicationResolvingCallbackFromTrait;
         resolveApplicationConfiguration as protected resolveApplicationConfigurationFromTrait;
     }
+
+    /**
+     * The Illuminate application instance.
+     *
+     * @var \Illuminate\Foundation\Application|null
+     */
+    protected $app;
 
     /**
      * List of configurations.
@@ -118,7 +128,7 @@ class Application
         $basePath = $config['laravel'] ?? static::applicationBasePath();
 
         return (new static($config['laravel'], $resolvingCallback))->configure(array_merge($options, [
-            'load_environment_variables' => file_exists("{$basePath}/.env"),
+            'load_environment_variables' => is_file("{$basePath}/.env"),
             'extra' => $config->getExtraAttributes(),
         ]));
     }
@@ -136,7 +146,24 @@ class Application
     {
         $app = static::create(basePath: $basePath, options: ['extra' => ['dont-discover' => ['*']]]);
 
-        (new Bootstrap\CreateVendorSymlink($workingVendorPath))->bootstrap($app);
+        (new Actions\CreateVendorSymlink($workingVendorPath))->handle($app);
+
+        return $app;
+    }
+
+    /**
+     * Delete symlink to vendor path via new application instance.
+     *
+     * @param  string|null  $basePath
+     * @return \Illuminate\Foundation\Application
+     *
+     * @codeCoverageIgnore
+     */
+    public static function deleteVendorSymlink(?string $basePath)
+    {
+        $app = static::create(basePath: $basePath, options: ['extra' => ['dont-discover' => ['*']]]);
+
+        (new Actions\DeleteVendorSymlink)->handle($app);
 
         return $app;
     }
@@ -197,11 +224,15 @@ class Application
         RegisterProviders::flushState();
         RouteListCommand::resolveTerminalWidthUsing(null);
         ScheduleListCommand::resolveTerminalWidthUsing(null);
+        SchemaBuilder::$defaultStringLength = 255;
+        SchemaBuilder::$defaultMorphKeyType = 'int';
+        Signals::resolveAvailabilityUsing(null); // @phpstan-ignore argument.type
         Sleep::fake(false);
         ThrottleRequests::shouldHashKeys();
         TrimStrings::flushState();
         TrustProxies::flushState();
         VerifyCsrfToken::flushState();
+        WorkCommand::flushState();
     }
 
     /**
@@ -280,7 +311,7 @@ class Application
      * @param  \Illuminate\Foundation\Application  $app
      * @return void
      */
-    private function resolveApplicationResolvingCallback($app): void
+    protected function resolveApplicationResolvingCallback($app): void
     {
         $this->resolveApplicationResolvingCallbackFromTrait($app);
 
@@ -290,13 +321,15 @@ class Application
     }
 
     /**
-     * Get base path.
+     * Resolve the application's base path.
+     *
+     * @api
      *
      * @internal
      *
      * @return string
      */
-    protected function getBasePath()
+    protected function getApplicationBasePath()
     {
         return $this->basePath ?? static::applicationBasePath();
     }
@@ -336,7 +369,7 @@ class Application
     {
         $this->resolveApplicationConfigurationFromTrait($app);
 
-        (new Bootstrap\EnsuresDefaultConfiguration())->bootstrap($app);
+        (new Bootstrap\EnsuresDefaultConfiguration)->bootstrap($app);
     }
 
     /**
@@ -355,7 +388,7 @@ class Application
 
         $kernel = Workbench::applicationConsoleKernel() ?? 'Orchestra\Testbench\Console\Kernel';
 
-        if (file_exists($app->basePath(join_paths('app', 'Console', 'Kernel.php'))) && class_exists('App\Console\Kernel')) {
+        if (is_file($app->basePath(join_paths('app', 'Console', 'Kernel.php'))) && class_exists('App\Console\Kernel')) {
             $kernel = 'App\Console\Kernel';
         }
 
@@ -378,7 +411,7 @@ class Application
 
         $kernel = Workbench::applicationHttpKernel() ?? 'Orchestra\Testbench\Http\Kernel';
 
-        if (file_exists($app->basePath(join_paths('app', 'Http', 'Kernel.php'))) && class_exists('App\Http\Kernel')) {
+        if (is_file($app->basePath(join_paths('app', 'Http', 'Kernel.php'))) && class_exists('App\Http\Kernel')) {
             $kernel = 'App\Http\Kernel';
         }
 

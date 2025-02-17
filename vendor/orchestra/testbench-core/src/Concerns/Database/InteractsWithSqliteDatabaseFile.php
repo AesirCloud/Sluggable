@@ -29,14 +29,14 @@ trait InteractsWithSqliteDatabaseFile
     protected function withoutSqliteDatabase(callable $callback): void
     {
         $time = time();
-        $filesystem = new Filesystem();
+        $filesystem = new Filesystem;
 
         $database = database_path('database.sqlite');
 
         if ($filesystem->exists($database)) {
             $filesystem->move($database, $temporary = "{$database}.backup-{$time}");
 
-            array_push($this->files, $temporary);
+            $this->files[] = $temporary;
         }
 
         value($callback);
@@ -57,7 +57,7 @@ trait InteractsWithSqliteDatabaseFile
     protected function withSqliteDatabase(callable $callback): void
     {
         $this->withoutSqliteDatabase(static function () use ($callback) {
-            $filesystem = new Filesystem();
+            $filesystem = new Filesystem;
 
             $database = database_path('database.sqlite');
 
@@ -83,7 +83,7 @@ trait InteractsWithSqliteDatabaseFile
     #[AfterClass]
     public static function cleanupBackupSqliteDatabaseFilesOnFailed()
     {
-        $filesystem = new Filesystem();
+        $filesystem = new Filesystem;
 
         $filesystem->delete(
             Collection::make($filesystem->glob(database_path('database.sqlite.backup-*')))

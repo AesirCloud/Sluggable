@@ -1,6 +1,6 @@
 # Generate unique slugs when creating or updating Eloquent models
 
-`sluggable` is a Laravel package that generates unique slugs for Eloquent models. It can be used to automatically generate slugs when creating or updating models.
+`sluggable` is a Laravel package that generates unique slugs for Eloquent models. It can be used to automatically generate slugs when creating or updating models, with flexible options controlled by both a config file and model-level properties.
 
 ---
 
@@ -13,20 +13,20 @@
 
 ## Installation
 
-You can install the package via composer:
+You can install the package via Composer:
 
 ```bash
-composer require aesircloud/sluggable
+  composer require aesircloud/sluggable
 ```
 
 ## Publish the configuration file
 ```bash
-php artisan vendor:publish --provider="AesirCloud\Sluggable\SluggableServiceProvider"
+  php artisan vendor:publish --provider="AesirCloud\Sluggable\SluggableServiceProvider"
 ```
 
 ## Usage
 
-To use the package, add the `Sluggable` trait to your Eloquent model and optionally define the `$slugSource` property to configure the slug generation, the default value is `name`:
+Add the `Sluggable` trait to your model:
 
 ```php
 <?php
@@ -42,18 +42,36 @@ class Post extends Model
 
     protected $fillable = ['title', 'slug'];
 
-    protected $slugSource = 'title'; // or 'description', or any other field
+    /**
+     * Optionally override the default slug source field.
+     *
+     * By default, the package uses whatever is set in 'sluggable.source'
+     * or falls back to 'name' on your model. Here, we explicitly use 'title'.
+     */
+    protected $slugSource = 'title';
+
+    /**
+     * If you want to allow the slug to be updated automatically when 'title' changes:
+     */
+    protected $slugUpdatable = true;
+
+    /**
+     * If you want a different slug column in your database table:
+     */
+    protected $slugColumn = 'url_slug';
 }
 ```
 
-You will need to add a slug column to your table. You can do this by creating a migration:
+## 2. Migrate the Slug Column
+
+Ensure your table has a suitable column for the slug:
 
 ```bash
-php artisan make:migration add_slug_to_posts_table --table=posts
+  php artisan make:migration add_slug_to_posts_table --table=posts
 ```
 
 ```php
-    <?php
+<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -61,19 +79,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('posts', function (Blueprint $table) {
+            // Make sure it's unique or at least indexed if you rely on uniqueness.
             $table->string('slug')->unique()->after('title');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('posts', function (Blueprint $table) {
@@ -81,7 +94,45 @@ return new class extends Migration
         });
     }
 };
+```
 
+## 3. Configuration Options
+
+Open `config/sluggable.php` to see the available options. You can override any of these in your model by defining the corresponding property.
+
+```php
+return [
+    'source'     => 'name',
+    'column'     => 'slug',
+    'update'     => false,
+    'max_length' => 255,
+    'scopes'     => [], // e.g. ['category_id'] to scope uniqueness
+];
+
+```
+ - source: The default field the slug is generated from if you don’t set $slugSource in the model.
+ - column: The column to store the slug.
+ - update: Set true to automatically regenerate a slug when the source field changes on update.
+ - max_length: Truncates the slug (plus space for numeric suffixes) to this length if specified.
+ - scopes: Array of columns to scope uniqueness (e.g., if you only want unique slugs per category_id).
+
+## 4. Route Model Binding (Optional)
+
+If you want to use the slug in your routes, you can override getRouteKeyName() in your model:
+
+```php
+public function getRouteKeyName()
+{
+    return 'slug';
+}
+```
+
+Then reference it in your routes:
+
+```php
+Route::get('/posts/{post:slug}', function (App\Models\Post $post) {
+    return $post;
+});
 ```
 
 ## Changelog
@@ -92,6 +143,6 @@ Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recen
 
 If you've found a bug regarding security please mail [security@aesircloud.com](mailto:security@aesircloud.com) instead of using the issue tracker.
 
-## License
+## LICENSE
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The MIT License (MIT). Please see [License](LICENSE.md) file for more information.

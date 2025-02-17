@@ -6,6 +6,11 @@ use Illuminate\Console\View\Components\Factory;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * @api
+ *
+ * @codeCoverageIgnore
+ */
 readonly class ServeCommandEnded
 {
     /**
@@ -21,7 +26,5 @@ readonly class ServeCommandEnded
         public OutputInterface $output,
         public Factory $components,
         public int $exitCode
-    ) {
-        //
-    }
+    ) {}
 }

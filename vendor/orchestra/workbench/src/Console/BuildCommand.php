@@ -7,11 +7,14 @@ use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Collection;
 use Orchestra\Workbench\BuildParser;
 use Orchestra\Workbench\Contracts\RecipeManager;
+use Orchestra\Workbench\Recipes\Command as CommandRecipe;
 use Orchestra\Workbench\Workbench;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
  * @phpstan-import-type TWorkbenchConfig from \Orchestra\Testbench\Foundation\Config
+ *
+ * @codeCoverageIgnore
  */
 #[AsCommand(name: 'workbench:build', description: 'Run builds for workbench')]
 class BuildCommand extends Command
@@ -35,7 +38,11 @@ class BuildCommand extends Command
             ->each(function (array $options, string $name) use ($kernel, $recipes, $commands) {
                 /** @var array<string, mixed> $options */
                 if ($recipes->hasCommand($name)) {
-                    $recipes->command($name)->handle($kernel, $this->output);
+                    tap($recipes->command($name), function ($recipe) use ($options) {
+                        if ($recipe instanceof CommandRecipe) {
+                            $recipe->options = $options;
+                        }
+                    })->handle($kernel, $this->output);
 
                     return;
                 }

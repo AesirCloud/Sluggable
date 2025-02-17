@@ -31,22 +31,22 @@
         "php": "^8.2",
         "composer-runtime-api": "^2.2",
         "composer/semver": "^3.0",
-        "illuminate/console": "^11.10",
-        "illuminate/database": "^11.10",
-        "illuminate/filesystem": "^11.10",
-        "illuminate/support": "^11.10",
-        "orchestra/canvas-core": "^9.0",
-        "orchestra/testbench-core": "^9.0",
-        "symfony/polyfill-php83": "^1.28",
-        "symfony/yaml": "^7.0"
+        "illuminate/console": "^11.35",
+        "illuminate/database": "^11.35",
+        "illuminate/filesystem": "^11.35",
+        "illuminate/support": "^11.35",
+        "orchestra/canvas-core": "^9.1",
+        "orchestra/testbench-core": "^9.7",
+        "symfony/polyfill-php83": "^1.31",
+        "symfony/yaml": "^7.0.3"
     },
     "require-dev": {
-        "laravel/framework": "^11.10",
-        "laravel/pint": "^1.6",
-        "mockery/mockery": "^1.6",
-        "phpstan/phpstan": "^1.11",
-        "phpunit/phpunit": "^11.0",
-        "spatie/laravel-ray": "^1.35"
+        "laravel/framework": "^11.35",
+        "laravel/pint": "^1.17",
+        "mockery/mockery": "^1.6.10",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.5",
+        "spatie/laravel-ray": "^1.39"
     },
     "config": {
         "preferred-install": {
@@ -56,9 +56,6 @@
         "sort-packages": true
     },
     "extra": {
-        "branch-alias": {
-            "dev-master": "9.0-dev"
-        },
         "laravel": {
             "providers": [
                 "Orchestra\\Canvas\\LaravelServiceProvider"
@@ -73,10 +70,15 @@
         "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
         "lint": [
-            "@php vendor/bin/pint",
+            "@php vendor/bin/pint --ansi",
             "@php vendor/bin/phpstan analyse --verbose"
         ],
-        "test": "@php vendor/bin/phpunit -c ./ --color",
+        "test": [
+            "@composer dump-autoload",
+            "@php vendor/bin/phpunit --no-coverage --no-configuration --bootstrap vendor/autoload.php --color tests",
+            "@php vendor/bin/phpunit --no-coverage --no-configuration --bootstrap vendor/autoload.php --color workbench/tests"
+        ],
+        "sync": "@php bin/sync",
         "ci": [
             "@composer audit",
             "@prepare",

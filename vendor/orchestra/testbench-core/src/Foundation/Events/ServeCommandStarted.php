@@ -6,6 +6,11 @@ use Illuminate\Console\View\Components\Factory;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * @api
+ *
+ * @codeCoverageIgnore
+ */
 readonly class ServeCommandStarted
 {
     /**
@@ -19,7 +24,5 @@ readonly class ServeCommandStarted
         public InputInterface $input,
         public OutputInterface $output,
         public Factory $components
-    ) {
-        //
-    }
+    ) {}
 }

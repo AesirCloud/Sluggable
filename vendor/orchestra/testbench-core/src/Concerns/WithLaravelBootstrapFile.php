@@ -5,7 +5,6 @@ namespace Orchestra\Testbench\Concerns;
 use Orchestra\Testbench\Foundation\Application as Testbench;
 
 use function Illuminate\Filesystem\join_paths;
-use function Orchestra\Testbench\default_skeleton_path;
 use function Orchestra\Testbench\workbench_path;
 
 trait WithLaravelBootstrapFile
@@ -22,10 +21,9 @@ trait WithLaravelBootstrapFile
      */
     protected function getApplicationBootstrapFile(string $filename): string|false
     {
-        $bootstrapFile = realpath(join_paths($this->getBasePath(), 'bootstrap', $filename));
-        $defaultBootstrapFile = $this->getDefaultApplicationBootstrapFile($filename);
+        $bootstrapFile = realpath(join_paths($this->getApplicationBasePath(), 'bootstrap', $filename));
 
-        if (\is_string($defaultBootstrapFile) && $defaultBootstrapFile === $bootstrapFile) {
+        if ($this->usesTestbenchDefaultSkeleton()) {
             if (static::usesTestingConcern(WithWorkbench::class) || $this instanceof Testbench) {
                 return is_file($workbenchFile = workbench_path(join_paths('bootstrap', $filename))) ? (string) realpath($workbenchFile) : false;
             }
@@ -45,18 +43,28 @@ trait WithLaravelBootstrapFile
      */
     protected function hasCustomApplicationKernels(): bool
     {
-        return realpath($this->getBasePath()) !== default_skeleton_path()
+        return ! $this->usesTestbenchDefaultSkeleton()
             && ((static::$cacheApplicationBootstrapFile ??= $this->getApplicationBootstrapFile('app.php')) !== false);
     }
 
     /**
-     * Get base path.
+     * Determine if application is bootstrapped using Testbench's default skeleton.
      *
-     * @internal
+     * @return bool
+     */
+    protected function usesTestbenchDefaultSkeleton(): bool
+    {
+        return realpath(join_paths($this->getApplicationBasePath(), 'bootstrap', '.testbench-default-skeleton')) !== false;
+    }
+
+    /**
+     * Get the application's base path.
+     *
+     * @api
      *
      * @return string
      */
-    abstract protected function getBasePath();
+    abstract protected function getApplicationBasePath();
 
     /**
      * Get the default application bootstrap file path (if exists).

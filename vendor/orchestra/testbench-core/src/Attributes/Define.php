@@ -6,7 +6,7 @@ use Attribute;
 use Orchestra\Testbench\Contracts\Attributes\Resolvable as ResolvableContract;
 use Orchestra\Testbench\Contracts\Attributes\TestingFeature;
 
-#[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
+#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 final class Define implements ResolvableContract
 {
     /**
@@ -18,9 +18,7 @@ final class Define implements ResolvableContract
     public function __construct(
         public readonly string $group,
         public readonly string $method
-    ) {
-        //
-    }
+    ) {}
 
     /**
      * Resolve the actual attribute class.

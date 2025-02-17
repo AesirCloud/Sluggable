@@ -3,7 +3,6 @@
 namespace Orchestra\Testbench\Console;
 
 use Illuminate\Console\Concerns\InteractsWithSignals;
-use Illuminate\Console\Signals;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Filesystem\Filesystem;
@@ -14,7 +13,8 @@ use Orchestra\Testbench\Foundation\Application as Testbench;
 use Orchestra\Testbench\Foundation\Bootstrap\LoadMigrationsFromArray;
 use Orchestra\Testbench\Foundation\Config;
 use Orchestra\Testbench\Foundation\Console\Concerns\CopyTestbenchFiles;
-use Orchestra\Testbench\Foundation\Env;
+use Orchestra\Testbench\Foundation\Console\Signals;
+use Orchestra\Testbench\Foundation\Console\TerminatingConsole;
 use Orchestra\Testbench\Foundation\TestbenchServiceProvider;
 use Orchestra\Testbench\Workbench\Workbench;
 use Symfony\Component\Console\Application as ConsoleApplication;
@@ -24,11 +24,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\SignalRegistry\SignalRegistry;
 use Throwable;
 
-use function Illuminate\Filesystem\join_paths;
+use function Orchestra\Testbench\join_paths;
 use function Orchestra\Testbench\transform_relative_path;
 
 /**
  * @phpstan-import-type TConfig from \Orchestra\Testbench\Foundation\Config
+ *
+ * @codeCoverageIgnore
  */
 class Commander
 {
@@ -85,6 +87,8 @@ class Commander
         protected readonly string $workingPath
     ) {
         $this->config = $config instanceof Config ? $config : new Config($config);
+
+        $_ENV['TESTBENCH_ENVIRONMENT_FILE_USING'] = $this->environmentFile;
     }
 
     /**
@@ -94,20 +98,12 @@ class Commander
      */
     public function handle(): void
     {
-        $input = new ArgvInput();
-        $output = new ConsoleOutput();
+        $input = new ArgvInput;
+        $output = new ConsoleOutput;
 
         try {
             $laravel = $this->laravel();
             $kernel = $laravel->make(ConsoleKernel::class);
-
-            if (
-                Env::has('TESTBENCH_PACKAGE_TESTER') === false
-                && Env::has('TESTBENCH_PACKAGE_REMOTE') === false
-                && $laravel->runningUnitTests() === true
-            ) {
-                $laravel->instance('env', 'workbench');
-            }
 
             $this->prepareCommandSignals();
 
@@ -117,7 +113,7 @@ class Commander
         } catch (Throwable $error) {
             $status = $this->handleException($output, $error);
         } finally {
-            $this->handleTerminatingConsole();
+            TerminatingConsole::handle();
             Workbench::flush();
             static::$testbench::flushState($this);
 
@@ -128,21 +124,31 @@ class Commander
     }
 
     /**
-     * Create Laravel application.
+     * Create a Laravel application.
      *
      * @return \Illuminate\Foundation\Application
      */
     public function laravel()
     {
         if (! $this->app instanceof LaravelApplication) {
-            $APP_BASE_PATH = $this->getBasePath();
+            $APP_BASE_PATH = $this->getApplicationBasePath();
+            $VENDOR_PATH = join_paths($this->workingPath, 'vendor');
 
-            $hasEnvironmentFile = fn () => file_exists(join_paths($APP_BASE_PATH, '.env'));
+            $filesystem = new Filesystem;
+
+            $hasEnvironmentFile = fn () => is_file(join_paths($APP_BASE_PATH, '.env'));
+
+            TerminatingConsole::beforeWhen(
+                ! $filesystem->isFile(join_paths($VENDOR_PATH, 'autoload.php')),
+                static function () use ($APP_BASE_PATH) {
+                    static::$testbench::deleteVendorSymlink($APP_BASE_PATH);
+                }
+            );
 
             tap(
                 static::$testbench::createVendorSymlink($APP_BASE_PATH, join_paths($this->workingPath, 'vendor')),
-                function ($app) use ($hasEnvironmentFile) {
-                    $filesystem = new Filesystem();
+                function ($app) use ($filesystem, $hasEnvironmentFile) {
+                    $this->copyTestbenchConfigurationFile($app, $filesystem, $this->workingPath);
 
                     if (! $hasEnvironmentFile()) {
                         $this->copyTestbenchDotEnvFile($app, $filesystem, $this->workingPath);
@@ -154,10 +160,12 @@ class Commander
                 basePath: $APP_BASE_PATH,
                 resolvingCallback: $this->resolveApplicationCallback(),
                 options: array_filter([
-                    'load_environment_variables' => file_exists("{$APP_BASE_PATH}/.env"),
+                    'load_environment_variables' => $hasEnvironmentFile(),
                     'extra' => $this->config->getExtraAttributes(),
                 ]),
             );
+
+            $this->app->instance('TESTBENCH_COMMANDER', $this);
         }
 
         return $this->app;
@@ -186,21 +194,11 @@ class Commander
     }
 
     /**
-     * Get Application base path.
+     * Resolve the application's base path.
      *
      * @return string
      */
-    public static function applicationBasePath()
-    {
-        return static::$testbench::applicationBasePath();
-    }
-
-    /**
-     * Get base path.
-     *
-     * @return string
-     */
-    protected function getBasePath()
+    protected function getApplicationBasePath()
     {
         $path = $this->config['laravel'] ?? null;
 
@@ -211,6 +209,18 @@ class Commander
         }
 
         return static::applicationBasePath();
+    }
+
+    /**
+     * Get the application's base path.
+     *
+     * @api
+     *
+     * @return string
+     */
+    public static function applicationBasePath()
+    {
+        return static::$testbench::applicationBasePath();
     }
 
     /**
@@ -244,12 +254,12 @@ class Commander
         Signals::resolveAvailabilityUsing(static fn () => \extension_loaded('pcntl'));
 
         Signals::whenAvailable(function () {
-            $this->signals ??= new Signals(new SignalRegistry());
+            $this->signals ??= new Signals(new SignalRegistry);
 
-            Collection::make(Arr::wrap([SIGINT, SIGTERM, SIGQUIT]))
+            Collection::make(Arr::wrap([SIGTERM, SIGINT, SIGHUP, SIGUSR1, SIGUSR2, SIGQUIT]))
                 ->each(
                     fn ($signal) => $this->signals->register($signal, function () use ($signal) {
-                        $this->handleTerminatingConsole();
+                        TerminatingConsole::handle();
                         Workbench::flush();
 
                         $status = match ($signal) {
@@ -260,9 +270,32 @@ class Commander
 
                         $this->untrap();
 
+                        if (\in_array($status, [130])) {
+                            exit;
+                        }
+
                         exit($status);
                     })
                 );
+        }, function () {
+            if (windows_os() && PHP_SAPI === 'cli' && \function_exists('sapi_windows_set_ctrl_handler')) {
+                sapi_windows_set_ctrl_handler(static function ($event) {
+                    TerminatingConsole::handle();
+                    Workbench::flush();
+
+                    $status = match ($event) {
+                        PHP_WINDOWS_EVENT_CTRL_C => 572,
+                        PHP_WINDOWS_EVENT_CTRL_BREAK => 572,
+                        default => 0,
+                    };
+
+                    if (\in_array($status, [0])) {
+                        exit;
+                    }
+
+                    exit($status);
+                });
+            }
         });
     }
 }

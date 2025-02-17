@@ -16,6 +16,8 @@ use Illuminate\Support\ServiceProvider;
 use Orchestra\Testbench\Attributes\DefineEnvironment;
 use Orchestra\Testbench\Attributes\RequiresEnv;
 use Orchestra\Testbench\Attributes\RequiresLaravel;
+use Orchestra\Testbench\Attributes\ResolvesLaravel;
+use Orchestra\Testbench\Attributes\UsesFrameworkConfiguration;
 use Orchestra\Testbench\Attributes\WithConfig;
 use Orchestra\Testbench\Attributes\WithEnv;
 use Orchestra\Testbench\Attributes\WithImmutableDates;
@@ -40,7 +42,7 @@ trait CreatesApplication
     use WithLaravelBootstrapFile;
 
     /**
-     * Get Application's base path.
+     * Get the application's base path.
      *
      * @api
      *
@@ -64,7 +66,7 @@ trait CreatesApplication
     }
 
     /**
-     * Get application timezone.
+     * Get the application timezone.
      *
      * @api
      *
@@ -238,15 +240,17 @@ trait CreatesApplication
     }
 
     /**
-     * Get base path.
+     * Resolve the application's base path.
      *
-     * @internal
+     * @api
      *
      * @return string
      */
-    protected function getBasePath()
+    protected function getApplicationBasePath()
     {
-        return static::applicationBasePath();
+        return method_exists($this, 'getBasePath')
+            ? $this->getBasePath()
+            : static::applicationBasePath();
     }
 
     /**
@@ -256,7 +260,10 @@ trait CreatesApplication
      *
      * @param  string  $filename
      * @return string|false
+     *
+     * @deprecated
      */
+    #[\Deprecated('Removed unreliable method to determine default skeleton', since: '9.7.0')]
     protected function getDefaultApplicationBootstrapFile(string $filename): string|false
     {
         return realpath(default_skeleton_path(join_paths('bootstrap', $filename)));
@@ -272,6 +279,8 @@ trait CreatesApplication
     public function createApplication()
     {
         $app = $this->resolveApplication();
+
+        $this->resolveApplicationFacades($app);
 
         $this->resolveApplicationResolvingCallback($app);
 
@@ -298,7 +307,7 @@ trait CreatesApplication
      */
     final protected function resolveDefaultApplication()
     {
-        return (new ApplicationBuilder(new Application($this->getBasePath())))
+        return (new ApplicationBuilder(new Application($this->getApplicationBasePath())))
             ->withProviders()
             ->withMiddleware(static function ($middleware) {
                 //
@@ -319,7 +328,7 @@ trait CreatesApplication
         static::$cacheApplicationBootstrapFile ??= $this->getApplicationBootstrapFile('app.php');
 
         if (\is_string(static::$cacheApplicationBootstrapFile)) {
-            $APP_BASE_PATH = $this->getBasePath();
+            $APP_BASE_PATH = $this->getApplicationBasePath();
 
             return require static::$cacheApplicationBootstrapFile;
         }
@@ -333,7 +342,7 @@ trait CreatesApplication
      * @param  \Illuminate\Foundation\Application  $app
      * @return void
      */
-    private function resolveApplicationResolvingCallback($app): void
+    protected function resolveApplicationResolvingCallback($app): void
     {
         $app->bind(
             'Illuminate\Foundation\Bootstrap\LoadConfiguration',
@@ -343,6 +352,18 @@ trait CreatesApplication
         );
 
         PackageManifest::swap($app, $this);
+    }
+
+    /**
+     * Resolve application facades implementation.
+     *
+     * @param  \Illuminate\Foundation\Application  $app
+     * @return void
+     */
+    protected function resolveApplicationFacades($app)
+    {
+        Facade::clearResolvedInstances();
+        Facade::setFacadeApplication($app);
     }
 
     /**
@@ -373,7 +394,7 @@ trait CreatesApplication
         );
 
         if ($this instanceof PHPUnitTestCase && method_exists($this, 'beforeApplicationDestroyed')) {
-            $this->beforeApplicationDestroyed(function () use ($attributeCallbacks) {
+            $this->beforeApplicationDestroyed(static function () use ($attributeCallbacks) {
                 $attributeCallbacks->handle();
             });
         }
@@ -389,6 +410,14 @@ trait CreatesApplication
      */
     protected function resolveApplicationConfiguration($app)
     {
+        TestingFeature::run(
+            testCase: $this,
+            attribute: function () use ($app) {
+                $this->parseTestMethodAttributes($app, ResolvesLaravel::class); /** @phpstan-ignore method.notFound */
+                $this->parseTestMethodAttributes($app, UsesFrameworkConfiguration::class); /** @phpstan-ignore method.notFound */
+            }
+        );
+
         $app->make('Illuminate\Foundation\Bootstrap\LoadConfiguration')->bootstrap($app);
         $app->make('Orchestra\Testbench\Bootstrap\ConfigureRay')->bootstrap($app);
         $app->make('Orchestra\Testbench\Foundation\Bootstrap\SyncDatabaseEnvironmentVariables')->bootstrap($app);
@@ -428,9 +457,6 @@ trait CreatesApplication
      */
     protected function resolveApplicationCore($app)
     {
-        Facade::clearResolvedInstances();
-        Facade::setFacadeApplication($app);
-
         if ($this->isRunningTestCase()) {
             $app->detectEnvironment(static fn () => 'testing');
         }
@@ -474,7 +500,7 @@ trait CreatesApplication
     {
         after_resolving($app, HttpKernelContract::class, function ($kernel, $app) {
             /** @var \Illuminate\Foundation\Http\Kernel $kernel */
-            $middleware = new Middleware();
+            $middleware = new Middleware;
 
             $kernel->setGlobalMiddleware($middleware->getGlobalMiddleware());
             $kernel->setMiddlewareGroups($middleware->getMiddlewareGroups());

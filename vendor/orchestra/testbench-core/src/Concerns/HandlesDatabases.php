@@ -5,9 +5,11 @@ namespace Orchestra\Testbench\Concerns;
 use Closure;
 use Illuminate\Database\Events\DatabaseRefreshed;
 use Orchestra\Testbench\Attributes\DefineDatabase;
+use Orchestra\Testbench\Attributes\RequiresDatabase;
 use Orchestra\Testbench\Attributes\WithMigration;
-use Orchestra\Testbench\Exceptions\ApplicationNotAvailableException;
 use Orchestra\Testbench\Features\TestingFeature;
+
+use function Orchestra\Testbench\laravel_or_fail;
 
 /**
  * @internal
@@ -23,9 +25,12 @@ trait HandlesDatabases
      */
     protected function setUpDatabaseRequirements(Closure $callback): void
     {
-        if (\is_null($app = $this->app)) {
-            throw ApplicationNotAvailableException::make(__METHOD__);
-        }
+        $app = laravel_or_fail($this->app);
+
+        TestingFeature::run(
+            testCase: $this,
+            attribute: fn () => $this->parseTestMethodAttributes($app, RequiresDatabase::class),
+        );
 
         $app['events']->listen(DatabaseRefreshed::class, function () {
             $this->defineDatabaseMigrationsAfterDatabaseRefreshed();
@@ -75,20 +80,24 @@ trait HandlesDatabases
      */
     protected function usesSqliteInMemoryDatabaseConnection(?string $connection = null): bool
     {
-        if (\is_null($app = $this->app)) {
-            throw ApplicationNotAvailableException::make(__METHOD__);
-        }
+        $app = laravel_or_fail($this->app);
 
         /** @var \Illuminate\Contracts\Config\Repository $config */
         $config = $app->make('config');
 
         /** @var string $connection */
-        $connection = ! \is_null($connection) ? $connection : $config->get('database.default');
+        $connection ??= $config->get('database.default');
 
         /** @var array{driver: string, database: string}|null $database */
         $database = $config->get("database.connections.{$connection}");
 
-        return ! \is_null($database) && $database['driver'] === 'sqlite' && $database['database'] == ':memory:';
+        if (\is_null($database) || $database['driver'] !== 'sqlite') {
+            return false;
+        }
+
+        return $database['database'] == ':memory:'
+            || str_contains($database['database'], '?mode=memory')
+            || str_contains($database['database'], '&mode=memory');
     }
 
     /**

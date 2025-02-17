@@ -2,6 +2,8 @@
 
 namespace Orchestra\Testbench\Bootstrap;
 
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\LazyCollection;
 use Orchestra\Testbench\Workbench\Workbench;
@@ -30,27 +32,29 @@ class LoadConfigurationWithWorkbench extends LoadConfiguration
             && is_dir(workbench_path('config'));
     }
 
-    /**
-     * Resolve the configuration file.
-     *
-     * @param  string  $path
-     * @param  string  $key
-     * @return string
-     */
+    /** {@inheritDoc} */
+    #[\Override]
+    public function bootstrap(Application $app): void
+    {
+        parent::bootstrap($app);
+
+        $userModel = Workbench::applicationUserModel();
+
+        if (! \is_null($userModel) && is_a($userModel, Authenticatable::class, true)) {
+            $app->make('config')->set('auth.providers.users.model', $userModel);
+        }
+    }
+
+    /** {@inheritDoc} */
     #[\Override]
     protected function resolveConfigurationFile(string $path, string $key): string
     {
-        $config = workbench_path(['config', "{$key}.php"]);
+        $config = workbench_path('config', "{$key}.php");
 
         return $this->usesWorkbenchConfigFile === true && is_file($config) ? $config : $path;
     }
 
-    /**
-     * Extend the loaded configuration.
-     *
-     * @param  \Illuminate\Support\Collection  $configurations
-     * @return \Illuminate\Support\Collection
-     */
+    /** {@inheritDoc} */
     #[\Override]
     protected function extendsLoadedConfiguration(Collection $configurations): Collection
     {

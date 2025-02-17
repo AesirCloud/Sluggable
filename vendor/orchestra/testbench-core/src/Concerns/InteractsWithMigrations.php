@@ -7,9 +7,9 @@ use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Orchestra\Testbench\Attributes\ResetRefreshDatabaseState;
 use Orchestra\Testbench\Database\MigrateProcessor;
-use Orchestra\Testbench\Exceptions\ApplicationNotAvailableException;
 
-use function Orchestra\Testbench\laravel_migration_path;
+use function Orchestra\Testbench\default_migration_path;
+use function Orchestra\Testbench\laravel_or_fail;
 use function Orchestra\Testbench\load_migration_paths;
 
 /**
@@ -22,7 +22,7 @@ trait InteractsWithMigrations
      *
      * @var array<int, \Orchestra\Testbench\Database\MigrateProcessor>
      */
-    protected $cachedTestMigratorProcessors = [];
+    protected array $cachedTestMigratorProcessors = [];
 
     /**
      * Setup the test environment.
@@ -33,7 +33,7 @@ trait InteractsWithMigrations
     {
         if ($this->usesSqliteInMemoryDatabaseConnection()) {
             $this->afterApplicationCreated(static function () {
-                static::usesTestingFeature(new ResetRefreshDatabaseState());
+                static::usesTestingFeature(new ResetRefreshDatabaseState);
             });
         }
     }
@@ -67,24 +67,27 @@ trait InteractsWithMigrations
      */
     protected function loadMigrationsFrom(array|string $paths): void
     {
+        $app = laravel_or_fail($this->app);
+
         if (
             (\is_string($paths) || Arr::isList($paths))
             && static::usesRefreshDatabaseTestingConcern()
             && RefreshDatabaseState::$migrated === false
             && RefreshDatabaseState::$lazilyRefreshed === false
         ) {
-            if (\is_null($this->app)) {
-                throw ApplicationNotAvailableException::make(__METHOD__);
-            }
-
             /** @var array<int, string>|string $paths */
-            load_migration_paths($this->app, $paths);
+            load_migration_paths($app, $paths);
 
             return;
         }
 
         /** @var array<string, mixed>|string $paths */
-        $this->loadMigrationsWithoutRollbackFrom($paths);
+        $migrator = new MigrateProcessor($this, $this->resolvePackageMigrationsOptions($paths));
+        $migrator->up();
+
+        array_unshift($this->cachedTestMigratorProcessors, $migrator);
+
+        $this->resetApplicationArtisanCommands($app);
     }
 
     /**
@@ -97,18 +100,17 @@ trait InteractsWithMigrations
      *
      * @deprecated
      */
+    #[\Deprecated(message: 'Use `loadMigrationsFrom()` instead', since: '9.0.7')]
     protected function loadMigrationsWithoutRollbackFrom(array|string $paths): void
     {
-        if (\is_null($this->app)) {
-            throw ApplicationNotAvailableException::make(__METHOD__);
-        }
+        $app = laravel_or_fail($this->app);
 
         $migrator = new MigrateProcessor($this, $this->resolvePackageMigrationsOptions($paths));
         $migrator->up();
 
         array_unshift($this->cachedTestMigratorProcessors, $migrator);
 
-        $this->resetApplicationArtisanCommands($this->app);
+        $this->resetApplicationArtisanCommands($app);
     }
 
     /**
@@ -144,7 +146,18 @@ trait InteractsWithMigrations
      */
     protected function loadLaravelMigrations(array|string $database = []): void
     {
-        $this->loadLaravelMigrationsWithoutRollback($database);
+        $app = laravel_or_fail($this->app);
+
+        $options = $this->resolveLaravelMigrationsOptions($database);
+        $options['--path'] = default_migration_path();
+        $options['--realpath'] = true;
+
+        $migrator = new MigrateProcessor($this, $this->resolveLaravelMigrationsOptions($options));
+        $migrator->up();
+
+        array_unshift($this->cachedTestMigratorProcessors, $migrator);
+
+        $this->resetApplicationArtisanCommands($app);
     }
 
     /**
@@ -157,22 +170,10 @@ trait InteractsWithMigrations
      *
      * @deprecated
      */
+    #[\Deprecated(message: 'Use `loadLaravelMigrations()` instead', since: '9.0.7')]
     protected function loadLaravelMigrationsWithoutRollback(array|string $database = []): void
     {
-        if (\is_null($this->app)) {
-            throw ApplicationNotAvailableException::make(__METHOD__);
-        }
-
-        $options = $this->resolveLaravelMigrationsOptions($database);
-        $options['--path'] = laravel_migration_path();
-        $options['--realpath'] = true;
-
-        $migrator = new MigrateProcessor($this, $this->resolveLaravelMigrationsOptions($options));
-        $migrator->up();
-
-        array_unshift($this->cachedTestMigratorProcessors, $migrator);
-
-        $this->resetApplicationArtisanCommands($this->app);
+        $this->loadLaravelMigrations($database);
     }
 
     /**
@@ -185,7 +186,14 @@ trait InteractsWithMigrations
      */
     protected function runLaravelMigrations(array|string $database = []): void
     {
-        $this->runLaravelMigrationsWithoutRollback($database);
+        $app = laravel_or_fail($this->app);
+
+        $migrator = new MigrateProcessor($this, $this->resolveLaravelMigrationsOptions($database));
+        $migrator->up();
+
+        array_unshift($this->cachedTestMigratorProcessors, $migrator);
+
+        $this->resetApplicationArtisanCommands($app);
     }
 
     /**
@@ -198,18 +206,10 @@ trait InteractsWithMigrations
      *
      * @deprecated
      */
+    #[\Deprecated(message: 'Use `runLaravelMigrations()` method instead', since: '9.0.7')]
     protected function runLaravelMigrationsWithoutRollback(array|string $database = []): void
     {
-        if (\is_null($this->app)) {
-            throw ApplicationNotAvailableException::make(__METHOD__);
-        }
-
-        $migrator = new MigrateProcessor($this, $this->resolveLaravelMigrationsOptions($database));
-        $migrator->up();
-
-        array_unshift($this->cachedTestMigratorProcessors, $migrator);
-
-        $this->resetApplicationArtisanCommands($this->app);
+        $this->runLaravelMigrations($database);
     }
 
     /**
