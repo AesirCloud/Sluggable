@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'aesircloud/sluggable',
-        'pretty_version' => '1.1.0.x-dev',
-        'version' => '1.1.0.9999999-dev',
-        'reference' => 'ddc5bcdffb48af76f149f7f38c32d1559e5fa268',
+        'pretty_version' => '1.1.1.x-dev',
+        'version' => '1.1.1.9999999-dev',
+        'reference' => '1ee51aef354fc833e00de8b159a812fb0a711172',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'aesircloud/sluggable' => array(
-            'pretty_version' => '1.1.0.x-dev',
-            'version' => '1.1.0.9999999-dev',
-            'reference' => 'ddc5bcdffb48af76f149f7f38c32d1559e5fa268',
+            'pretty_version' => '1.1.1.x-dev',
+            'version' => '1.1.1.9999999-dev',
+            'reference' => '1ee51aef354fc833e00de8b159a812fb0a711172',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
