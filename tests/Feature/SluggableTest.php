@@ -18,3 +18,7 @@ it('merges the configuration file', function () {
     $config = config('sluggable.source');
     expect($config)->toBe('title');
 });
+
+it('runs on Laravel 12', function () {
+    expect(str_starts_with(app()->version(), '12.'))->toBeTrue();
+});

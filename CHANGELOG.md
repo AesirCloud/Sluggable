@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to `sluggable` will be documented in this file.
 
+## 1.1.4 - 2025-08-26
+- **Change:** Dropped support for Laravel 11; package now targets Laravel 12 and newer.
+- **Change:** Bumped minimum PHP version requirement to 8.4.
+- **Tests:** Added a feature test to verify the package runs on Laravel 12.
+
 ## 1.1.3 - 2025-02-23
 - **Enhancement:** Added support for laravel 12.x
 
