@@ -22,3 +22,7 @@ it('merges the configuration file', function () {
 it('runs on Laravel 12', function () {
     expect(str_starts_with(app()->version(), '12.'))->toBeTrue();
 });
+
+it('runs on PHP 8.4', function () {
+    expect(PHP_VERSION_ID)->toBeGreaterThanOrEqual(80400);
+});
