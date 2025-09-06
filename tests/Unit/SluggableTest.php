@@ -36,3 +36,15 @@ it('updates the slug on update', function () {
 
     $this->assertEquals('hello-universe', $post->slug);
 });
+
+it('respects a manually set slug', function () {
+    $post = new Post(['title' => 'Hello World']);
+    $post->slug = 'custom-slug';
+    $post->save();
+
+    $this->assertEquals('custom-slug', $post->slug);
+
+    $post->update(['title' => 'Hello Universe']);
+
+    $this->assertEquals('custom-slug', $post->slug);
+});

@@ -30,7 +30,7 @@ trait Sluggable
      * @param  string  $slug
      * @return Model|null
      */
-    public static function findBySlug($slug): ?Model
+     public static function findBySlug(string $slug): ?Model
     {
         $column = (new static)->getSlugColumn();
 
@@ -58,6 +58,12 @@ trait Sluggable
 
         // Determine which field we use as slug source
         $sourceField = $this->determineSourceField();
+
+        // If the slug column already has a value, honor it and skip generation
+        $slugColumn = $this->getSlugColumn();
+        if (! empty($this->{$slugColumn})) {
+            return;
+        }
 
         // If it's an update, check if the source field is actually dirty
         if ($onUpdate && ! $this->isDirty($sourceField)) {
@@ -109,7 +115,7 @@ trait Sluggable
         return $this->{$sourceField}
             ?? $this->title
             ?? $this->name
-            ?? 'default';
+            ?? '';
     }
 
     /**

@@ -62,6 +62,17 @@ class Post extends Model
 }
 ```
 
+### Manually Setting Slugs
+
+If you assign a value to the slug column before saving, the trait will honor it and skip automatic generation:
+
+```php
+$post = new Post(['title' => 'My Title']);
+$post->slug = 'custom-slug';
+$post->save();
+// $post->slug remains 'custom-slug'
+```
+
 ## 2. Migrate the Slug Column
 
 Ensure your table has a suitable column for the slug:
