@@ -17,6 +17,11 @@ class SluggableServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/sluggable.php' => config_path('sluggable.php'),
         ], 'config');
+
+        // Publish the action stub
+        $this->publishes([
+            __DIR__.'/../stubs/action.stub' => base_path('stubs/action.stub'),
+        ], 'actions-stubs');
     }
 
     /**
