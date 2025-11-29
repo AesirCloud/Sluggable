@@ -14,6 +14,21 @@ it('can publish the configuration file', function () {
     $this->assertFileExists(config_path('sluggable.php'));
 });
 
+it('can publish the action stub', function () {
+    $stubPath = base_path('stubs/action.stub');
+
+    if (file_exists($stubPath)) {
+        unlink($stubPath);
+    }
+
+    $this->artisan('vendor:publish', [
+        '--provider' => 'AesirCloud\Sluggable\SluggableServiceProvider',
+        '--tag' => 'actions-stubs',
+    ])->assertExitCode(0);
+
+    $this->assertFileExists($stubPath);
+});
+
 it('merges the configuration file', function () {
     $config = config('sluggable.source');
     expect($config)->toBe('title');

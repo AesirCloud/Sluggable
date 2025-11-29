@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to `sluggable` will be documented in this file.
 
+## 1.1.5 - 2025-09-23
+- **Fix:** Added publishable action stub mapping and template to restore `vendor:publish --tag=actions-stubs` support.
+- **Tests:** Added coverage to ensure the action stub publishes successfully.
+
 ## 1.1.4 - 2025-08-26
 - **Change:** Dropped support for Laravel 11; package now targets Laravel 12 and newer.
 - **Change:** Bumped minimum PHP version requirement to 8.4.
