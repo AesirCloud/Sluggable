@@ -34,8 +34,8 @@ it('merges the configuration file', function () {
     expect($config)->toBe('title');
 });
 
-it('runs on Laravel 12', function () {
-    expect(str_starts_with(app()->version(), '12.'))->toBeTrue();
+it('runs on a supported Laravel release', function () {
+    expect((int) explode('.', app()->version())[0])->toBeIn([12, 13]);
 });
 
 it('runs on PHP 8.4', function () {
