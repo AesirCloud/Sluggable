@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to `sluggable` will be documented in this file.
 
+## 1.2.1 - 2026-11-20
+
+- Add required PHP 8.6 coverage and compatible Pest/Testbench branches while retaining Laravel 12 and 13 support.
+
 ## 1.2.0 - 2026-07-10
 - **Change:** Added support for Laravel 13.
 
