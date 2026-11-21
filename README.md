@@ -1,3 +1,5 @@
+Version 1.3 supports PHP 8.3–8.6. Existing APIs and framework support are retained.
+
 # Generate unique slugs when creating or updating Eloquent models
 
 `sluggable` is a Laravel package that generates unique slugs for Eloquent models. It can be used to automatically generate slugs when creating or updating models, with flexible options controlled by both a config file and model-level properties.
