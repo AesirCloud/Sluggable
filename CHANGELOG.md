@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to `sluggable` will be documented in this file.
 
+## 1.3.0 - 2026-11-21
+
+- Expand runtime support to PHP 8.3 while retaining existing supported runtimes and framework APIs.
+- Verify fresh and locked installations, platform/security checks and actual tests across PHP 8.3–8.6.
+
 ## 1.2.1 - 2026-11-20
 
 - Add required PHP 8.6 coverage and compatible Pest/Testbench branches while retaining Laravel 12 and 13 support.

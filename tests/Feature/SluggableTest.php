@@ -38,6 +38,6 @@ it('runs on a supported Laravel release', function () {
     expect((int) explode('.', app()->version())[0])->toBeIn([12, 13]);
 });
 
-it('runs on PHP 8.4', function () {
-    expect(PHP_VERSION_ID)->toBeGreaterThanOrEqual(80400);
+it('runs on PHP 8.3 or later', function () {
+    expect(PHP_VERSION_ID)->toBeGreaterThanOrEqual(80300);
 });
